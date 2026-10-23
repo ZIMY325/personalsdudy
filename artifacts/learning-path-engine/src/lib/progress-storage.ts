@@ -1,4 +1,4 @@
-import { DAY_END, DAY_START, type StudySession } from './time-blocking';
+import { appendSession, type StudySession } from './time-blocking';
 export const STORAGE_KEY = 'learning-path-engine:v1';
 export type ScheduleEntry = StudySession;
 
@@ -37,28 +37,32 @@ export function readPersistedState(
 
 function migrateSessions(value: unknown, validIds?: ReadonlySet<string>, courseHours?: ReadonlyMap<string, number>): StudySession[] {
   if (!Array.isArray(value)) return [];
-  const result: StudySession[] = [];
+  let result: StudySession[] = [];
   const allocated = new Map<string, number>();
   for (const raw of value) {
     if (!raw || typeof raw !== 'object') continue;
     const entry = raw as Record<string, unknown>;
     if (typeof entry.nodeId !== 'string' || (validIds && !validIds.has(entry.nodeId))) continue;
-    const week = typeof entry.week === 'number' ? entry.week : 0;
+    const week = entry.week === undefined ? 0 : entry.week;
     const day = entry.day;
-    const startMinutes = typeof entry.startMinutes === 'number' ? entry.startMinutes : Number(entry.hour) * 60;
-    let durationMinutes = typeof entry.durationMinutes === 'number' ? entry.durationMinutes : 60;
-    if (!Number.isInteger(week) || week < 0 || week >= 52 ||
-        typeof day !== 'number' || !Number.isInteger(day) || day < 0 || day >= 7 ||
-        !Number.isInteger(startMinutes) || startMinutes < DAY_START ||
-        !Number.isInteger(durationMinutes) || durationMinutes <= 0 ||
-        startMinutes + durationMinutes > DAY_END) continue;
-    const id = typeof entry.id === 'string' ? entry.id : `${entry.nodeId}:w${week}:d${day}:m${startMinutes}`;
-    if (result.some(session => session.id === id)) continue;
+    const legacy = !('id' in entry) && !('sessionId' in entry) &&
+      !('durationHours' in entry) && !('durationMinutes' in entry) && !('startMinutes' in entry);
+    const startMinutes = entry.startMinutes === undefined && typeof entry.hour === 'number' ? entry.hour * 60 : entry.startMinutes;
+    const savedDuration = legacy ? 60
+      : entry.durationMinutes === undefined && typeof entry.durationHours === 'number'
+        ? entry.durationHours * 60 : entry.durationMinutes;
+    const id = legacy ? `${entry.nodeId}:w${week}:d${day}:m${startMinutes}` : entry.id ?? entry.sessionId;
+    if (typeof id !== 'string' || typeof week !== 'number' || typeof day !== 'number' ||
+      typeof startMinutes !== 'number' || typeof savedDuration !== 'number') continue;
+    let durationMinutes = savedDuration;
     const limit = courseHours?.get(entry.nodeId);
-    if (limit !== undefined) durationMinutes = Math.min(durationMinutes, Math.max(0, Math.round(limit * 60) - (allocated.get(entry.nodeId) ?? 0)));
-    if (!durationMinutes) continue;
+    // Only start-only reminders lack an explicit duration. Never truncate a
+    // real appointment when restoring either modern session schema.
+    if (legacy && limit !== undefined) durationMinutes = Math.min(durationMinutes, Math.max(0, Math.round(limit * 60) - (allocated.get(entry.nodeId) ?? 0)));
+    const next = appendSession(result, { id, nodeId: entry.nodeId, week, day, startMinutes, durationMinutes, completed: entry.completed === true });
+    if (!next) continue;
     allocated.set(entry.nodeId, (allocated.get(entry.nodeId) ?? 0) + durationMinutes);
-    result.push({ id, nodeId: entry.nodeId, week, day, startMinutes, durationMinutes, completed: entry.completed === true });
+    result = next;
   }
   return result;
 }

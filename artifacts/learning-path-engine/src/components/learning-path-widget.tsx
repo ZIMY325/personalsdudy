@@ -11,7 +11,7 @@ export interface LearningPathState {
   targetRole: string;
   skillGaps: string[];
   completedSkillGaps: string[];
-  scheduledLessons: Array<{ skill: string; day: number; hour: number }>;
+  scheduledLessons: Array<{ sessionId: string; skill: string; week: number; day: number; hour: number; durationHours: number }>;
   completedCourseIds: string[];
   completedHours: number;
   totalHours: number;
@@ -58,7 +58,8 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
       completedSkillGaps: [...new Set(learning.nodes.map(node => node.skill))].filter(skill =>
         learning.nodes.filter(node => node.skill === skill).every(node => learning.completedIds.includes(node.id))),
       scheduledLessons: learning.schedule.map(entry => ({
-        skill: byId.get(entry.nodeId)?.skill ?? '', day: entry.day, hour: entry.startMinutes / 60,
+        sessionId: entry.id, skill: byId.get(entry.nodeId)?.skill ?? '', week: entry.week,
+        day: entry.day, hour: entry.startMinutes / 60, durationHours: entry.durationMinutes / 60,
       })),
       completedCourseIds: [...learning.completedIds],
       completedHours: learning.summary.completedHours, totalHours: learning.summary.totalHours,
@@ -221,12 +222,12 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Plan study sessions</DialogTitle>
-            <DialogDescription>Choose a day and time, then set your study hours per session. The whole remaining course will be split automatically.</DialogDescription>
+            <DialogDescription>Add an independent study session, or explicitly split and replan the remaining course across days.</DialogDescription>
           </DialogHeader>
           <ScheduleForm key={`form:${inputSignature}`} nodes={learning.nodes} progress={learning.courseProgress}
-            initialNodeId={scheduleNodeId} onAssign={(nodeId, day, startMinutes, sessionHours) => {
-              const result = learning.assign(nodeId, day, startMinutes, sessionHours);
-              if (result.ok) { setScheduleNotice('Study sessions saved. Mark a block finished to update course progress.'); setScheduleOpen(false); }
+            initialNodeId={scheduleNodeId} onAssign={(nodeId, day, startMinutes, sessionHours, mode, week) => {
+              const result = learning.assign(nodeId, day, startMinutes, sessionHours, mode, week);
+              if (result.ok) { setScheduleNotice('Study sessions saved. Use the week arrows to see later sessions.'); setScheduleOpen(false); }
               return result;
             }} />
         </DialogContent>

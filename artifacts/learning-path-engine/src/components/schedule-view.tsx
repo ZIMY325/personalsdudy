@@ -18,12 +18,14 @@ export function ScheduleForm({
   nodes: PathNode[];
   progress: Progress;
   initialNodeId: string | null;
-  onAssign: (nodeId: string, day: number, startMinutes: number, sessionHours: number) => { ok: boolean; error?: string };
+  onAssign: (nodeId: string, day: number, startMinutes: number, sessionHours: number, mode: 'single' | 'course', week: number) => { ok: boolean; error?: string };
 }) {
   const [nodeId, setNodeId] = useState(initialNodeId ?? '');
   const [day, setDay] = useState('0');
   const [time, setTime] = useState('18:00');
   const [hours, setHours] = useState('1');
+  const [mode, setMode] = useState<'single' | 'course'>('single');
+  const [week, setWeek] = useState('1');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => { if (initialNodeId) setNodeId(initialNodeId); }, [initialNodeId]);
 
@@ -43,15 +45,16 @@ export function ScheduleForm({
   let localError = '';
   if (!(sessionHours >= 0.25 && sessionHours <= 8)) localError = 'Hours per session must be between 0.25 and 8.';
   else if (Math.round(sessionHours * 60) % 15 !== 0) localError = 'Use 0.25-hour steps.';
-  else if (start < DAY_START || start + Math.round(Math.min(sessionHours, remaining || sessionHours) * 60) > DAY_END) localError = 'Sessions must fit between 08:00 and 22:00.';
+  else if (start < DAY_START || start + Math.round((mode === 'single' ? sessionHours : Math.min(sessionHours, remaining || sessionHours)) * 60) > DAY_END) localError = 'Sessions must fit between 08:00 and 22:00.';
 
   return (
     <form data-testid="form-schedule" className="grid min-w-0 content-start gap-4 rounded-lg border border-card-border bg-card p-4 sm:p-5" onSubmit={e => {
       e.preventDefault();
       if (!node) { setMessage({ ok: false, text: 'Select a course to schedule.' }); return; }
       if (localError) { setMessage({ ok: false, text: localError }); return; }
-      const res = onAssign(node.id, Number(day), start, sessionHours);
-      setMessage(res.ok ? { ok: true, text: `Scheduled ${split.length} ${split.length === 1 ? 'session' : 'sessions'} for ${node.resourceName}.` } : { ok: false, text: res.error ?? 'Could not schedule this course.' });
+      const res = onAssign(node.id, Number(day), start, sessionHours, mode, Number(week) - 1);
+      const count = mode === 'single' ? 1 : split.length;
+      setMessage(res.ok ? { ok: true, text: `Scheduled ${count} ${count === 1 ? 'session' : 'sessions'} for ${node.resourceName}.` } : { ok: false, text: res.error ?? 'Could not schedule this course.' });
     }}>
       <div>
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Plan sessions</p>
@@ -63,6 +66,18 @@ export function ScheduleForm({
           {nodes.map(n => <option key={n.id} value={n.id}>{n.skill} · {n.resourceName}</option>)}
         </select>
       </label>
+      <label className="grid gap-1.5 text-sm font-medium">Planning mode
+        <select value={mode} onChange={e => { setMode(e.target.value as 'single' | 'course'); setMessage(null); }}
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <option value="single">Add one independent session</option>
+          <option value="course">Split / replan the remaining course</option>
+        </select>
+      </label>
+      {mode === 'single' && <label className="grid gap-1.5 text-sm font-medium">Week
+        <input type="number" min={1} max={52} step={1} required value={week}
+          onChange={e => { setWeek(e.target.value); setMessage(null); }}
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
+      </label>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
         <label className="grid gap-1.5 text-sm font-medium">Start day
           <select data-testid="select-day" value={day} onChange={e => { setDay(e.target.value); setMessage(null); }} className="rounded-md border border-input bg-background px-2 py-2 text-sm">
@@ -70,15 +85,15 @@ export function ScheduleForm({
           </select>
         </label>
         <label className="grid gap-1.5 text-sm font-medium">Start time
-          <input data-testid="input-time" type="time" step={900} min="08:00" max="21:45" value={time} onChange={e => { setTime(e.target.value); setMessage(null); }} className="rounded-md border border-input bg-background px-2 py-2 text-sm" />
+          <input data-testid="input-time" type="time" required step={900} min="08:00" max="21:45" value={time} onChange={e => { setTime(e.target.value); setMessage(null); }} className="rounded-md border border-input bg-background px-2 py-2 text-sm" />
         </label>
         <label className="grid gap-1.5 text-sm font-medium">Hours / session
-          <input data-testid="input-hours" type="number" min={0.25} max={8} step={0.25} value={hours} onChange={e => { setHours(e.target.value); setMessage(null); }} className="rounded-md border border-input bg-background px-2 py-2 text-sm" />
+          <input data-testid="input-hours" type="number" required min={0.25} max={8} step={0.25} value={hours} onChange={e => { setHours(e.target.value); setMessage(null); }} className="rounded-md border border-input bg-background px-2 py-2 text-sm" />
         </label>
       </div>
       {node && (
         <div data-testid="text-split-preview" className="rounded-md bg-secondary/70 px-3 py-2.5 text-xs">
-          {remaining <= 0 ? <p>This course is already complete.</p> : (
+          {mode === 'single' ? <p>Add a {fmtH(sessionHours)} h session without moving existing sessions. Overlapping sessions are rejected. Scheduling does not mark a course complete.</p> : remaining <= 0 ? <p>This course is already complete.</p> : (
             <>
               <p className="font-semibold">{fmtH(remaining)} h remaining · {split.length} {split.length === 1 ? 'session' : 'sessions'} on successive days</p>
               {split.length > 0 && <p className="mt-1 font-mono text-muted-foreground">
@@ -91,8 +106,8 @@ export function ScheduleForm({
       )}
       {localError && <p role="alert" className="text-sm text-destructive">{localError}</p>}
       {message && <p role={message.ok ? 'status' : 'alert'} data-testid="text-schedule-result" className={`text-sm ${message.ok ? 'text-primary' : 'text-destructive'}`}>{message.text}</p>}
-      <button data-testid="button-assign" type="submit" disabled={!node || remaining <= 0 || !!localError} className="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">
-        Add sessions to calendar
+      <button data-testid="button-assign" type="submit" disabled={!node || (mode === 'course' && remaining <= 0) || !!localError} className="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40">
+        {mode === 'single' ? 'Add session to calendar' : 'Split remaining course'}
       </button>
     </form>
   );

@@ -1,2 +1,3 @@
 - [Learning path independence](learning-path-independence.md) — 学习路径引擎 is a standalone product, not a FuturePath feature or API consumer.
 - [Catalog authenticity](catalog-authenticity.md) — Generate associations from real public resources; never present reused course mappings as unique vetted courses.
+- [Schedule compatibility](schedule-compatibility.md) — Preserve independent appointments when merging manual scheduling with the multi-week course planner.

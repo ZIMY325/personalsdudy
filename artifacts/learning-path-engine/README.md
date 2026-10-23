@@ -24,6 +24,8 @@ alias. Home owns the Dev Test inputs and passes their UI through an optional
 `devPanel` ReactNode; embedded widgets need not provide it. There is no API call.
 The legacy `completedSkillGaps` and `scheduledLessons` callback fields remain
 available; use `scheduledSessions` for week and duration information.
+`scheduledLessons` also exposes each appointment's `sessionId`, `week` and
+`durationHours`, alongside its existing skill/day/hour fields.
 
 ## Demo and behavior
 
@@ -41,7 +43,13 @@ available; use `scheduledSessions` for week and duration information.
   search guidance, never fabricated courses.
 - Click a course title to preview it. In Learning Path, the separate circle
   marks the whole course complete/incomplete and synchronizes its sessions.
-- Scheduling accepts a start weekday, 15-minute start time, and 0.25–8 hours per
+- Scheduling defaults to **Add one independent session**, with a week, weekday,
+  15-minute start time and duration. Each addition has a unique ID and preserves
+  all earlier sessions, including those for the same course. Full-duration
+  overlaps are rejected, while adjacent sessions are allowed. Adding sessions
+  does not change course completion.
+- **Split / replan the remaining course** retains the automatic planner.
+  Scheduling accepts a start weekday, 15-minute start time, and 0.25–8 hours per
   session in quarter-hour steps. A 4-hour course at 1 hour/session becomes four
   18:00–19:00 sessions on successive days. A non-divisible remainder becomes a
   shorter final block. The sum always equals the remaining course time.
@@ -54,8 +62,9 @@ available; use `scheduledSessions` for week and duration information.
 - Marking a session finished immediately updates its course's partial progress
   and the overall completed hours. Overall percentage is hour-weighted.
 - **Reset progress** clears completion flags but retains scheduled sessions.
-  Removing a finished session removes its contributed hours unless the course
-  was explicitly marked fully complete.
+  Removing a session deletes only that appointment. A fully completed course
+  stays complete; removing a finished block from an incomplete course adjusts
+  its partial hours.
 
 ## Persistence
 
@@ -67,6 +76,10 @@ Stale node IDs and invalid calendar entries are filtered.
 Legacy `{nodeId, day, hour}` reminders migrate to one-hour sessions in week 1,
 capped at the course's actual hours and synchronized with saved completion.
 New sessions persist IDs, week, day, startMinutes, durationMinutes and completed.
+Appointments stored as `{sessionId, nodeId, day, hour, durationHours}` are also
+migrated, preserving their IDs and explicit durations. Explicit appointments
+are never truncated to course estimates. Duplicate IDs and conflicting stored
+sessions are filtered, keeping the first valid entry.
 
 Standalone debug inputs use a separate localStorage key so choosing a non-default
 career also survives refresh. Embedded usage never overrides upstream props
@@ -93,7 +106,7 @@ Cross-origin `load` cannot prove successful rendering.
 
 - `pnpm --filter @workspace/learning-path-engine run typecheck`
 - `PORT=18619 BASE_PATH=/ pnpm --filter @workspace/learning-path-engine run build`
-- `pnpm --filter @workspace/scripts exec tsx --tsconfig ../artifacts/learning-path-engine/tsconfig.json --test ../artifacts/learning-path-engine/src/lib/engine.test.ts ../artifacts/learning-path-engine/src/lib/time-blocking.test.ts`
+- `pnpm --filter @workspace/scripts exec tsx --tsconfig ../artifacts/learning-path-engine/tsconfig.json --test ../artifacts/learning-path-engine/src/lib/*.test.ts`
 
 The focused checks cover validation, aliases, guidance, totals, profiles,
 signature changes, legacy migration, exact splitting, partial progress,

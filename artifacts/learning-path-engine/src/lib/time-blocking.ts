@@ -12,6 +12,31 @@ export type PlanResult = { ok: true; sessions: StudySession[] } | { ok: false; e
 export const DAY_START = 8 * 60;
 export const DAY_END = 22 * 60;
 
+export function isValidSessionTime(week: number, day: number, startMinutes: number, durationMinutes: number): boolean {
+  return Number.isInteger(week) && week >= 0 && week < 52 &&
+    Number.isInteger(day) && day >= 0 && day < 7 &&
+    Number.isInteger(startMinutes) && startMinutes >= DAY_START &&
+    Number.isInteger(durationMinutes) && durationMinutes > 0 &&
+    startMinutes + durationMinutes <= DAY_END;
+}
+
+export function sessionsOverlap(a: StudySession, b: StudySession): boolean {
+  return a.week === b.week && a.day === b.day &&
+    a.startMinutes < b.startMinutes + b.durationMinutes &&
+    b.startMinutes < a.startMinutes + a.durationMinutes;
+}
+
+export function appendSession(entries: StudySession[], entry: StudySession): StudySession[] | null {
+  if (!entry.id || !entry.nodeId ||
+    !isValidSessionTime(entry.week, entry.day, entry.startMinutes, entry.durationMinutes) ||
+    entries.some(existing => existing.id === entry.id || sessionsOverlap(existing, entry))) return null;
+  return [...entries, entry];
+}
+
+export function removeSession(entries: StudySession[], sessionId: string): StudySession[] {
+  return entries.filter(entry => entry.id !== sessionId);
+}
+
 export function formatTime(minutes: number): string {
   return `${Math.floor(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`;
 }
