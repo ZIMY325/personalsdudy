@@ -1,0 +1,1 @@
+- [Learning path independence](learning-path-independence.md) — 学习路径引擎 is a standalone product, not a FuturePath feature or API consumer.

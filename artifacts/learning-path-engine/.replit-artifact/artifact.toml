@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "学习路径引擎"
+description = "A standalone learning path demo matching target roles and skill gaps to public free learning resources, with in-app viewing and locally saved completion progress."
+version = "1.0.0"
+id = "artifacts/learning-path-engine"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18619
+
+[services.development]
+run = "pnpm --filter @workspace/learning-path-engine run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/learning-path-engine", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/learning-path-engine/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18619"
+BASE_PATH = "/"
