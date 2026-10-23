@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { LanguageProvider } from '@/components/language-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -24,12 +25,12 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 
 function App() {
   return (
-    <TooltipProvider>
+    <LanguageProvider><TooltipProvider>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <Router />
       </WouterRouter>
       <Toaster />
-    </TooltipProvider>
+    </TooltipProvider></LanguageProvider>
   );
 }
 

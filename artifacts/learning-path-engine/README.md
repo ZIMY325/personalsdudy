@@ -1,7 +1,17 @@
 # Learning Path Engine
 
-Standalone, English-language, client-only learning plugin at `/`. No FuturePath,
+Standalone, multilingual, client-only learning plugin at `/`. No FuturePath,
 backend, API, authentication, or database dependency.
+
+## Interface languages
+
+The top-left buttons switch between 简体中文, English and Bahasa Melayu.
+The preference uses the separate `learning-path-engine:locale` localStorage key;
+switching never changes role/skill inputs, course IDs, completion or appointments.
+Course/provider titles and external resource content retain their original
+language. The interface includes translated navigation, controls, difficulty
+badges, calendar headers, validation, dialogs and resource-viewer fallback copy.
+Storage failures fall back safely to an in-memory language choice.
 
 ## Embed in a parent page
 

@@ -9,8 +9,8 @@ description: Product boundary for 学习路径引擎 and resource embedding expe
 
 **How to apply:** Keep future learning-path features self-contained; do not integrate FuturePath services or branding without an explicit request.
 
-Keep the product UI in English and keep manual role/skill inputs out of the main experience; the standalone demo's Target Job Selection tab contains the job and skill controls.
+Support Simplified Chinese, English and Malay in the product UI, while keeping manual role/skill inputs out of the main experience; Target Job Selection contains the job and skill controls.
 
-**Why:** The user wants this to be an independently embeddable plugin, not another input form in a parent product.
+**Why:** The user wants an independently embeddable plugin and explicitly requested a top-left three-language switcher, replacing the earlier English-only UI requirement.
 
-**How to apply:** Preserve the upstream-driven experience when adding features; do not reintroduce prominent manual inputs. The user renamed Dev Test to Target Job Selection and wants its copy to feel like choosing a career, not developer testing.
+**How to apply:** Preserve the upstream-driven experience; do not reintroduce prominent manual inputs. Target Job Selection should feel like choosing a career, not developer testing. Localize interface copy without rewriting canonical upstream identifiers or course source titles.
