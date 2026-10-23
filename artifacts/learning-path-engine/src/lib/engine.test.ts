@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { generatePath, parseSkills, signature, summarize, validateInput } from './engine';
 import { careerProfiles, resources } from './resources';
 import { readPersistedState, writePersistedState, STORAGE_KEY } from './progress-storage';
+import { LEVEL_ORDER } from './course-level';
 
 test('missing fields give messages and never generate a path', () => {
   for (const input of [
@@ -21,7 +22,7 @@ test('commas, Chinese commas and newlines parse into skills', () => {
 
 test('case-insensitive aliases deduplicate while preserving useful canonical skills', () => {
   const nodes = generatePath({ targetRole: 'Engineer', skillGaps: ['pYtHoN', 'py', 'TCP/IP', 'gcp', 'sqli', '跨站脚本'] });
-  assert.deepEqual([...new Set(nodes.map(n => n.skill))], ['Python', 'Networking', 'Google Cloud', 'SQL Injection', 'XSS']);
+  assert.deepEqual([...new Set(nodes.map(n => n.skill))].sort(), ['Python', 'Networking', 'Google Cloud', 'SQL Injection', 'XSS'].sort());
   assert.equal(nodes.filter(node => node.skill === 'Python').length, 2);
   assert.equal(nodes.some(n => n.isGuidance), false);
 });
@@ -62,6 +63,7 @@ test('catalog has at least 15 typed free resources and distinguishes blocked emb
   assert.equal(new Set(resources.map(r => r.category)).size, 9);
   for (const resource of resources) {
     assert.equal(resource.cost, 'Free');
+    assert.ok(resource.level in LEVEL_ORDER);
     assert.ok(resource.estimatedHours > 0);
     assert.equal(new URL(resource.url).protocol, 'https:');
     if (resource.embedding === 'blocked') assert.equal(resource.embedUrl, null);
@@ -82,8 +84,26 @@ test('each sample occupation has distinct, resource-backed detailed skill gaps',
     }
     assert.equal(generatePath({ targetRole: profile.targetRole, skillGaps: profile.skillGaps }).length, profile.skillGaps.length * 2);
   }
-  assert.deepEqual(generatePath({ targetRole: 'Cybersecurity', skillGaps: ['NETWORK SECURITY', 'linux basics', 'CRYPTOGRAPHY'] }).map(node => node.skill),
-    ['Network Security', 'Network Security', 'Linux Basics', 'Linux Basics', 'Cryptography', 'Cryptography']);
+  assert.deepEqual(generatePath({ targetRole: 'Cybersecurity', skillGaps: ['NETWORK SECURITY', 'linux basics', 'CRYPTOGRAPHY'] }).map(node => node.skill).sort(),
+    ['Network Security', 'Network Security', 'Linux Basics', 'Linux Basics', 'Cryptography', 'Cryptography'].sort());
+});
+
+test('paths sort by difficulty with stable order and unchanged IDs and state signature', () => {
+  const input = { targetRole: 'Engineer', skillGaps: ['Deep Learning', 'React', 'HTML', 'Python', 'CSS'] };
+  const before = signature(input);
+  const nodes = generatePath(input);
+  assert.deepEqual([...new Set(nodes.map(node => node.level))], ['Beginner', 'Intermediate', 'Advanced']);
+  assert.ok(nodes.every((node, index) => index === 0 || LEVEL_ORDER[nodes[index - 1]!.level] <= LEVEL_ORDER[node.level]));
+  assert.deepEqual(nodes.filter(node => node.level === 'Beginner').map(node => node.skill),
+    ['HTML', 'HTML', 'Python', 'CSS', 'CSS']);
+  assert.ok(nodes.some(node => node.id === 'python-video'));
+  assert.equal(nodes.find(node => node.id === 'python-official')?.level, 'Intermediate');
+  assert.equal(signature(input), before);
+  assert.equal(generatePath({ targetRole: 'Engineer', skillGaps: ['Unknown skill'] })[0]?.level, 'Beginner');
+  for (const profile of careerProfiles) {
+    const path = generatePath({ targetRole: profile.targetRole, skillGaps: profile.skillGaps });
+    assert.ok(path.every((node, index) => index === 0 || LEVEL_ORDER[path[index - 1]!.level] <= LEVEL_ORDER[node.level]));
+  }
 });
 
 test('refresh restores matching completion and schedule, and input signatures clear both', () => {

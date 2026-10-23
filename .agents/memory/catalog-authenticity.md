@@ -5,7 +5,7 @@ description: How the large demo catalog should grow without fabricating unique c
 
 Generate career/skill/course associations from reusable public resource seeds.
 Do not describe the association count as the number of unique vetted courses.
-Generated study-module titles and estimated practice hours are demo metadata;
+Generated study-module titles, difficulty labels and estimated practice hours are demo metadata;
 the underlying public resources must remain real and relevant.
 
 **Why:** The user requested a large algorithmically generated mock catalog, while the product's original requirement is genuinely free public learning resources.

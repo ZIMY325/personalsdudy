@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { resources, type Resource } from '@/lib/resources';
 import type { PathNode } from '@/lib/engine';
+import { LevelBadge } from '@/components/level-badge';
 
 const CATS = ['All', 'Python', 'Networking', 'Cloud', 'Web Security', 'Cybersecurity', 'Front-end', 'Data Analytics', 'Back-end', 'UI/UX'] as const;
 const EMBED_LABEL: Record<Resource['embedding'], string> = {
@@ -50,6 +51,7 @@ export function CatalogDialog({ onPreview }: { onPreview: (n: PathNode) => void 
               <li key={r.id} data-testid={`catalog-item-${r.id}`} className="rounded-md border border-border bg-background p-3">
                 <div className="flex flex-wrap items-center gap-2 text-[11px]">
                   <span className="font-mono uppercase tracking-[0.12em] text-primary">{r.category}</span>
+                  <LevelBadge level={r.level} />
                   <span className={`rounded-sm px-1.5 py-0.5 ${r.embedding === 'allowed' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{EMBED_LABEL[r.embedding]}</span>
                 </div>
                 <p className="mt-1 font-medium leading-snug">{r.resourceName}</p>

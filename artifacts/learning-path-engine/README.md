@@ -39,6 +39,10 @@ available; use `scheduledSessions` for week and duration information.
 - Eight career-family seeds generate 80 distinct career titles. Every career
   has at least 10 detailed skills, each mapped to two public learning resources.
 - Skill matching is case-insensitive (`toLowerCase`) and supports aliases.
+- All resources carry a typed `level`: Beginner, Intermediate or Advanced.
+  Generated paths sort in that order, preserving original order within each
+  difficulty. Green, blue and purple badges identify the levels on course cards.
+  Difficulty is editorial mock metadata, not a provider-issued rating.
 - Missing inputs produce no path. Unknown skills produce clearly labeled
   search guidance, never fabricated courses.
 - Click a course title to preview it. In Learning Path, the separate circle

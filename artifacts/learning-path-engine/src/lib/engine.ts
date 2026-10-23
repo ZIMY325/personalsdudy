@@ -1,4 +1,5 @@
 import { careerProfiles, resources, type Resource } from './resources';
+import { LEVEL_ORDER } from './course-level';
 
 export interface PathInput { targetRole: string; skillGaps: string[] }
 export interface PathNode extends Resource { requestedSkill: string; isGuidance: boolean }
@@ -98,12 +99,13 @@ export function generatePath(input: PathInput): PathNode[] {
       requestedSkill: requestedSkill.trim(), isGuidance: true,
        resourceName: `${requestedSkill.trim()} — Free learning resource guide`,
       provider: 'Google Search', url: `https://www.google.com/search?q=${encodeURIComponent(`${requestedSkill.trim()} free tutorial ${input.targetRole.trim()}`)}`,
-      embedUrl: null, estimatedHours: 1, cost: 'Free', kind: 'document',
+      embedUrl: null, estimatedHours: 1, cost: 'Free', level: 'Beginner', kind: 'document',
       category: 'Cloud', embedding: 'external',
        embeddingNote: 'This skill is not yet in the curated catalog. Search results are unreviewed; check that each resource is free. Allow about 1 hour to explore.',
     });
   }
-  return nodes;
+  // Stable sorting preserves the existing input/resource order within a level.
+  return nodes.sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
 }
 
 export function suggestSkills(targetRole: string): string[] {

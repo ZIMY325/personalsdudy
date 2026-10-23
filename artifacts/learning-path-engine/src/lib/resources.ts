@@ -1,4 +1,5 @@
 import { generateCatalog } from './catalog-generator';
+import { getCourseLevel, type CourseLevel } from './course-level';
 
 export type Category =
   | 'Python' | 'Networking' | 'Cloud' | 'Web Security' | 'Cybersecurity'
@@ -13,6 +14,7 @@ export interface Resource {
   embedUrl: string | null;
   estimatedHours: number;
   cost: 'Free';
+  level: CourseLevel;
   kind: 'video' | 'document';
   category: Category;
   embedding: 'allowed' | 'blocked' | 'external';
@@ -26,7 +28,7 @@ const doc = (
   url: string, estimatedHours: number, category: Category,
   framePolicy = 'The provider blocks third-party embedding through X-Frame-Options or CSP.',
 ): Resource => ({
-  id, skill, resourceName, provider, url, estimatedHours, category,
+  id, skill, resourceName, provider, url, estimatedHours, category, level: getCourseLevel(skill, id),
   embedUrl: null, cost: 'Free', kind: 'document', embedding: 'blocked',
   embeddingNote: framePolicy,
 });
@@ -35,7 +37,7 @@ const video = (
   id: string, skill: string, resourceName: string,
   youtubeId: string, estimatedHours: number, category: Category,
 ): Resource => ({
-  id, skill, resourceName, provider: 'freeCodeCamp',
+  id, skill, resourceName, provider: 'freeCodeCamp', level: getCourseLevel(skill, id),
   url: `https://www.youtube.com/watch?v=${youtubeId}`,
   embedUrl: `https://www.youtube.com/embed/${youtubeId}`,
   estimatedHours, category, cost: 'Free', kind: 'video', embedding: 'allowed',

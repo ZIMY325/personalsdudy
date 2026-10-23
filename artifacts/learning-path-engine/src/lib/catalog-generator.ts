@@ -1,5 +1,6 @@
 import type { Category, CareerProfile, Resource } from './resources';
 import { courseSupplements } from './course-supplements';
+import { getCourseLevel } from './course-level';
 
 type FamilySeed = {
   id: string; category: Category; roles: string[]; foundation: [string, string];
@@ -139,7 +140,7 @@ export function generateCatalog(base: readonly Resource[]) {
       const make = (suffix: string, title: string, link: string): Resource => ({
         id: `seed-${slug(skill)}-${suffix}`, skill, resourceName: title,
         provider: new URL(link).hostname.replace(/^www\./, ''), url: link, embedUrl: null,
-        estimatedHours: 4, cost: 'Free', kind: 'document', category: family.category,
+        estimatedHours: 4, cost: 'Free', level: getCourseLevel(skill), kind: 'document', category: family.category,
         embedding: 'external', embeddingNote: 'Free public reference or tutorial. Open on the provider website. Study hours are demo estimates.',
       });
       const first = existing[0] ?? make('reference', `${skill} — Reference study`, url);

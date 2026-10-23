@@ -4,6 +4,7 @@ import { useLearningPath } from '@/hooks/use-learning-path';
 import { NodeViewer } from '@/components/node-viewer';
 import { CatalogDialog } from '@/components/catalog-dialog';
 import { CalendarGrid, ScheduleForm } from '@/components/schedule-view';
+import { LevelBadge } from '@/components/level-badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { signature, type PathNode } from '@/lib/engine';
 
@@ -143,6 +144,7 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
                 return (
                   <article key={node.id} data-testid={`card-course-${node.id}`} className={`flex flex-col rounded-lg border bg-card p-4 ${completed.has(node.id) ? 'border-primary/40' : 'border-card-border'}`}>
                     <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-primary">{node.skill}</span>
+                    <div className="mt-1"><LevelBadge level={node.level} /></div>
                     <span className="mt-1 text-[10px] text-muted-foreground">{node.isGuidance ? 'Free · Search guidance' : 'Free resource'}</span>
                     <button type="button" onClick={() => setViewerNode(node)} className="mt-1 text-left font-display font-bold leading-snug hover:text-primary">{node.resourceName}</button>
                     <span className="mt-1 text-xs text-muted-foreground">{node.provider} · {fmt(node.estimatedHours)} h</span>
@@ -178,6 +180,7 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
                       <span className="flex flex-wrap items-center gap-2 text-[11px]">
                         <span className="font-mono uppercase tracking-[0.12em] text-primary">{node.skill}</span>
                         <span className="rounded-sm bg-secondary px-1.5 py-0.5 text-secondary-foreground">Free</span>
+                        <LevelBadge level={node.level} />
                         {node.isGuidance && <span className="inline-flex items-center gap-1 text-accent"><HelpCircle className="h-3 w-3" aria-hidden />Search guidance</span>}
                       </span>
                       <span className={`mt-1 block font-display text-lg font-bold leading-snug ${done ? 'line-through decoration-primary/50' : ''}`}>{node.resourceName}</span>
