@@ -71,7 +71,7 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
     changeHandler.current(next);
   }, [learning.completedIds, learning.nodes, learning.schedule, learning.summary.completedHours, learning.summary.totalHours, skillGaps, targetRole]);
 
-  const tabs: Array<[Tab, string]> = [['overview', 'Overview'], ['path', 'Learning Path'], ['calendar', 'Calendar'], ...(devPanel ? [['dev', 'Dev Test'] as [Tab, string]] : [])];
+  const tabs: Array<[Tab, string]> = [['overview', 'Overview'], ['path', 'Learning Path'], ['calendar', 'Calendar'], ...(devPanel ? [['dev', 'Target Job Selection'] as [Tab, string]] : [])];
   const openSchedule = (id: string | null) => {
     setScheduleNodeId(id); setTab('calendar');
     if (id) setScheduleOpen(true);
@@ -112,7 +112,7 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
 
         <div role="tabpanel" id={`${tabId}-panel`} aria-labelledby={`${tabId}-${tab}`}>
         {tab === 'dev' ? (
-          <section className="rise">{devPanel ?? <p className="text-sm text-muted-foreground">No developer panel was provided by the host.</p>}</section>
+          <section className="rise">{devPanel ?? <p className="text-sm text-muted-foreground">Choose a target job to personalize your learning path.</p>}</section>
         ) : !learning.valid ? (
           <div className="rise rounded-lg border border-dashed border-input px-6 py-14 text-center">
             <BookOpen className="mx-auto h-9 w-9 text-muted-foreground" aria-hidden />
@@ -120,7 +120,7 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
             <ul className="mt-2 space-y-1 text-sm text-destructive" role="alert" data-testid="text-input-errors">
               {(errorList.length ? errorList : ['A target role and at least one skill gap are required.']).map(e => <li key={e}>{e}</li>)}
             </ul>
-            {devPanel && <button type="button" onClick={() => setTab('dev')} className="mt-5 rounded-md border border-input px-3 py-2 text-sm hover:border-primary hover:text-primary">Open Dev Test</button>}
+            {devPanel && <button type="button" onClick={() => setTab('dev')} className="mt-5 rounded-md border border-input px-3 py-2 text-sm hover:border-primary hover:text-primary">Choose a target job</button>}
           </div>
         ) : tab === 'overview' ? (
           <section className="rise">
@@ -136,7 +136,7 @@ export function LearningPathWidget({ targetRole, skillGaps, onStateChange, devPa
               </button>
             </div>
             <ProgressBar value={learning.summary.percentage} />
-            <p className="mt-6 text-xs text-muted-foreground">{learning.nodes.length} learning resources across {new Set(learning.nodes.map(node => node.skill)).size} skill gaps. Career examples include two courses per skill; unknown skills receive search guidance. Public materials are reused where relevant.</p>
+            <p className="mt-6 text-xs text-muted-foreground">{learning.nodes.length} learning resources across {new Set(learning.nodes.map(node => node.skill)).size} skill gaps. Career profiles include two courses per skill; unknown skills receive search guidance. Public materials are reused where relevant.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {learning.nodes.map(node => {
                 const p = learning.courseProgress[node.id];

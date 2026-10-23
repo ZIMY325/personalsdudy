@@ -20,7 +20,7 @@ import { LearningPathWidget } from './components/learning-path-widget';
 
 The widget obtains inputs exclusively from props. Import the app's `index.css`
 when using it in another frontend. Local component imports use the existing `@/`
-alias. Home owns the Dev Test inputs and passes their UI through an optional
+alias. Home owns the Target Job Selection inputs and passes their UI through an optional
 `devPanel` ReactNode; embedded widgets need not provide it. There is no API call.
 The legacy `completedSkillGaps` and `scheduledLessons` callback fields remain
 available; use `scheduledSessions` for week and duration information.
@@ -34,8 +34,8 @@ available; use `scheduledSessions` for week and duration information.
 - **Schedule my path** opens **Calendar**, where the user selects a course.
   A card's **Schedule** button preselects that course and opens the scheduling
   dialog. Calendar's **Schedule a course** opens the same single dialog.
-- **Dev Test** contains manual role and comma/newline skill inputs, a searchable
-  career list, Apply example, and Match role to example.
+- **Target Job Selection** contains job and comma/newline skill inputs, a searchable
+  career list, Select this job, and Find matching job.
 - Eight career-family seeds generate 80 distinct career titles. Every career
   has at least 10 detailed skills, each mapped to two public learning resources.
 - Skill matching is case-insensitive (`toLowerCase`) and supports aliases.
