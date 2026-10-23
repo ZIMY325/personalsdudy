@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { generatePath, parseSkills, signature, summarize, validateInput } from './engine';
-import { resources } from './resources';
-import { initializeLearningPath, STORAGE_KEY } from '../hooks/use-learning-path';
+import { careerProfiles, resources } from './resources';
+import { readPersistedState, writePersistedState, STORAGE_KEY } from './progress-storage';
 
 test('missing fields give messages and never generate a path', () => {
   for (const input of [
@@ -58,7 +58,7 @@ test('normalized state signature is stable, but role or skill changes invalidate
 test('catalog has at least 15 typed free resources and distinguishes blocked embeds', () => {
   assert.ok(resources.length >= 15);
   assert.equal(new Set(resources.map(r => r.id)).size, resources.length);
-  assert.equal(new Set(resources.map(r => r.category)).size, 4);
+  assert.equal(new Set(resources.map(r => r.category)).size, 9);
   for (const resource of resources) {
     assert.equal(resource.cost, 'Free');
     assert.ok(resource.estimatedHours > 0);
@@ -68,35 +68,41 @@ test('catalog has at least 15 typed free resources and distinguishes blocked emb
   }
 });
 
-test('refresh restores matching saved completion and filters stale node IDs', () => {
+test('each sample occupation has distinct, resource-backed detailed skill gaps', () => {
+  assert.ok(careerProfiles.length >= 5);
+  for (const profile of careerProfiles) {
+    assert.ok(profile.skillGaps.length >= 4);
+    for (const skill of profile.skillGaps) {
+      assert.ok(resources.some(resource => resource.skill.toLowerCase() === skill.toLowerCase()), `${profile.targetRole}: ${skill}`);
+    }
+  }
+  assert.deepEqual(generatePath({ targetRole: 'Cybersecurity', skillGaps: ['NETWORK SECURITY', 'linux basics', 'CRYPTOGRAPHY'] }).map(node => node.skill),
+    ['Network Security', 'Linux Basics', 'Cryptography']);
+});
+
+test('refresh restores matching completion and schedule, and input signatures clear both', () => {
   const values = new Map<string, string>();
   const storage = {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => { values.set(key, value); },
     removeItem: (key: string) => { values.delete(key); },
   };
-  Object.defineProperty(globalThis, 'window', { configurable: true, value: { localStorage: storage } });
   const input = { targetRole: 'Engineer', skillGaps: ['Python', 'Networking'] };
   const saved = {
-    targetRole: input.targetRole, skillsText: input.skillGaps.join(','),
     signature: signature(input), completedIds: ['python-video', 'invalid', 'python-video'],
+    schedule: [{ nodeId: 'python-video', day: 0, hour: 14 }, { nodeId: 'invalid', day: 7, hour: 30 }],
   };
-  storage.setItem(STORAGE_KEY, JSON.stringify(saved));
-  const restored = initializeLearningPath();
-  assert.equal(restored.storageAvailable, true);
-  assert.deepEqual(restored.completion.ids, ['python-video']);
-  assert.equal(summarize(generatePath(input), restored.completion.ids).completedHours, 6);
-  storage.setItem(STORAGE_KEY, JSON.stringify({ ...saved, targetRole: 'Different role' }));
-  assert.deepEqual(initializeLearningPath().completion.ids, []);
-  storage.setItem(STORAGE_KEY, JSON.stringify({ ...saved, skillsText: 'Cloud' }));
-  assert.deepEqual(initializeLearningPath().completion.ids, []);
+  assert.equal(writePersistedState(saved, storage as unknown as Storage), true);
+  const validIds = new Set(generatePath(input).map(node => node.id));
+  const restored = readPersistedState(signature(input), storage as unknown as Storage, validIds);
+  assert.equal(restored.available, true);
+  assert.deepEqual(restored.state.completedIds, ['python-video']);
+  assert.deepEqual(restored.state.schedule, [{ nodeId: 'python-video', day: 0, hour: 14 }]);
+  assert.equal(summarize(generatePath(input), restored.state.completedIds).completedHours, 6);
+  assert.deepEqual(readPersistedState(signature({ ...input, targetRole: 'Security Engineer' }), storage as unknown as Storage, validIds).state.completedIds, []);
+  assert.deepEqual(readPersistedState(signature({ ...input, skillGaps: ['Python'] }), storage as unknown as Storage, validIds).state.schedule, []);
   storage.setItem(STORAGE_KEY, '{bad json');
-  assert.deepEqual(initializeLearningPath().completion.ids, []);
-  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
-    get localStorage() { throw new Error('Storage denied'); },
-  } });
-  const unavailable = initializeLearningPath();
-  assert.equal(unavailable.storageAvailable, false);
-  assert.deepEqual(unavailable.completion.ids, []);
-  Reflect.deleteProperty(globalThis, 'window');
+  assert.deepEqual(readPersistedState(signature(input), storage as unknown as Storage).state.completedIds, []);
+  assert.equal(readPersistedState(signature(input), null).available, false);
+  assert.equal(writePersistedState(saved, null), false);
 });

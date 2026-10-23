@@ -1,4 +1,4 @@
-import { resources, type Resource } from './resources';
+import { careerProfiles, resources, type Resource } from './resources';
 
 export interface PathInput { targetRole: string; skillGaps: string[] }
 export interface PathNode extends Resource { requestedSkill: string; isGuidance: boolean }
@@ -23,6 +23,26 @@ const aliases: Record<string, string[]> = {
   OWASP: ['owasp top 10', 'owasp top ten', 'owasp top10'],
   'SQL Injection': ['sqli', 'sql injection attacks', 'sql注入', 'sql 注入'],
   XSS: ['cross-site scripting', 'cross site scripting', '跨站脚本'],
+  'Network Security': ['network-security', 'network defense', 'network defence', 'network security fundamentals'],
+  'Linux Basics': ['linux', 'linux fundamentals', 'linux commands'],
+  Cryptography: ['crypto', 'cryptology'],
+  HTML: ['html5'],
+  CSS: ['css3', 'cascading style sheets'],
+  JavaScript: ['javascript', 'js', 'ecmascript'],
+  Git: ['version control', 'git and github'],
+  'Web Accessibility': ['web a11y', 'a11y', 'web accessibility'],
+  SQL: ['sql basics', 'structured query language'],
+  Excel: ['microsoft excel', 'spreadsheets', 'spreadsheet analysis'],
+  Statistics: ['statistical analysis', 'probability and statistics'],
+  'Data Analysis': ['data analytics', 'data analysis with python'],
+  'Node.js': ['node', 'nodejs', 'node js'],
+  'REST APIs': ['rest api', 'restful api', 'rest', 'apis'],
+  Databases: ['database', 'postgresql', 'postgres', 'relational databases'],
+  'Express.js': ['express', 'expressjs', 'express js'],
+  'UX Design': ['ux', 'user experience', 'user experience design'],
+  Wireframing: ['wireframe', 'wireframes', 'low-fidelity prototyping'],
+  Usability: ['usability testing', 'heuristic evaluation'],
+  Accessibility: ['inclusive design', 'digital accessibility'],
 };
 const canonicalNames = new Map<string, string>();
 for (const [canonical, alternatives] of Object.entries(aliases)) {
@@ -47,8 +67,8 @@ export function signature(input: PathInput): string {
 
 export function validateInput(input: PathInput): { targetRole?: string; skillGaps?: string } {
   return {
-    ...(!normalizeText(input.targetRole) ? { targetRole: '请输入目标岗位 / Target Role is required.' } : {}),
-    ...(!input.skillGaps.some(s => normalizeText(s)) ? { skillGaps: '请至少输入一项技能 / At least one skill gap is required.' } : {}),
+    ...(!normalizeText(input.targetRole) ? { targetRole: 'Target Role is required.' } : {}),
+    ...(!input.skillGaps.some(s => normalizeText(s)) ? { skillGaps: 'At least one skill gap is required.' } : {}),
   };
 }
 
@@ -61,19 +81,28 @@ export function generatePath(input: PathInput): PathNode[] {
     const canonical = canonicalSkill(requestedSkill);
     if (seen.has(canonical)) continue;
     seen.add(canonical);
-    const resource = resources.find(r => r.skill === canonical);
+    const resource = resources.find(r => r.skill.toLowerCase() === canonical.toLowerCase());
     if (resource) nodes.push({ ...resource, requestedSkill: requestedSkill.trim(), isGuidance: false });
     else nodes.push({
       id: `guidance:${canonical}`, skill: requestedSkill.trim(),
       requestedSkill: requestedSkill.trim(), isGuidance: true,
-      resourceName: `${requestedSkill.trim()} — 免费学习资源指南`,
+       resourceName: `${requestedSkill.trim()} — Free learning resource guide`,
       provider: 'Google Search', url: `https://www.google.com/search?q=${encodeURIComponent(`${requestedSkill.trim()} free tutorial ${input.targetRole.trim()}`)}`,
       embedUrl: null, estimatedHours: 1, cost: 'Free', kind: 'document',
       category: 'Cloud', embedding: 'external',
-      embeddingNote: '资源库暂未收录此技能。这是搜索指南，不是经过审核的课程；请自行确认结果是否免费。预留 1 小时探索。',
+       embeddingNote: 'This skill is not yet in the curated catalog. Search results are unreviewed; check that each resource is free. Allow about 1 hour to explore.',
     });
   }
   return nodes;
+}
+
+export function suggestSkills(targetRole: string): string[] {
+  const normalizedRole = targetRole.trim().toLowerCase();
+  const profile = careerProfiles.find((item) =>
+    item.targetRole.toLowerCase() === normalizedRole ||
+    item.id.toLowerCase() === normalizedRole,
+  );
+  return profile ? [...profile.skillGaps] : [];
 }
 
 export function summarize(nodes: PathNode[], completedIds: readonly string[]) {
