@@ -43,6 +43,16 @@ const aliases: Record<string, string[]> = {
   Wireframing: ['wireframe', 'wireframes', 'low-fidelity prototyping'],
   Usability: ['usability testing', 'heuristic evaluation'],
   Accessibility: ['inclusive design', 'digital accessibility'],
+  React: ['reactjs', 'react.js'],
+  Vue: ['vuejs', 'vue.js'],
+  Angular: ['angularjs'],
+  TypeScript: ['ts'],
+  'Next.js': ['nextjs', 'next js'],
+  'Machine Learning': ['ml'],
+  'Natural Language Processing': ['nlp'],
+  'Large Language Models': ['llm', 'llms'],
+  'CI/CD': ['cicd', 'continuous integration'],
+  'React Native': ['reactnative'],
 };
 const canonicalNames = new Map<string, string>();
 for (const [canonical, alternatives] of Object.entries(aliases)) {
@@ -81,8 +91,8 @@ export function generatePath(input: PathInput): PathNode[] {
     const canonical = canonicalSkill(requestedSkill);
     if (seen.has(canonical)) continue;
     seen.add(canonical);
-    const resource = resources.find(r => r.skill.toLowerCase() === canonical.toLowerCase());
-    if (resource) nodes.push({ ...resource, requestedSkill: requestedSkill.trim(), isGuidance: false });
+    const matches = resources.filter(r => r.skill.toLowerCase() === canonical.toLowerCase()).slice(0, 2);
+    if (matches.length) nodes.push(...matches.map(resource => ({ ...resource, requestedSkill: requestedSkill.trim(), isGuidance: false })));
     else nodes.push({
       id: `guidance:${canonical}`, skill: requestedSkill.trim(),
       requestedSkill: requestedSkill.trim(), isGuidance: true,
@@ -113,6 +123,6 @@ export function summarize(nodes: PathNode[], completedIds: readonly string[]) {
     totalHours,
     completedHours: completedNodes.reduce((sum, node) => sum + node.estimatedHours, 0),
     completedCount: completedNodes.length,
-    percentage: nodes.length ? Math.round(completedNodes.length / nodes.length * 100) : 0,
+    percentage: totalHours ? Math.round(completedNodes.reduce((sum, node) => sum + node.estimatedHours, 0) / totalHours * 100) : 0,
   };
 }

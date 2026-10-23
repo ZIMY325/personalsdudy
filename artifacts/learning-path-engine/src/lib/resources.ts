@@ -1,3 +1,5 @@
+import { generateCatalog } from './catalog-generator';
+
 export type Category =
   | 'Python' | 'Networking' | 'Cloud' | 'Web Security' | 'Cybersecurity'
   | 'Front-end' | 'Data Analytics' | 'Back-end' | 'UI/UX';
@@ -40,7 +42,13 @@ const video = (
   embeddingNote: 'Public YouTube embed. Availability may vary by region, browser, or publisher settings.',
 });
 
-export const resources: readonly Resource[] = [
+const externalDoc = (...args: Parameters<typeof doc>): Resource => ({
+  ...doc(...args),
+  embedding: 'external',
+  embeddingNote: 'Open this free resource on its original website. In-app embedding is not enabled for this provider.',
+});
+
+const baseResources: readonly Resource[] = [
   video('python-video', 'Python', 'Learn Python — Full Course for Beginners', 'rfscVS0vtbw', 6, 'Python'),
   {
     ...doc('python-official', 'Python', 'The Python Tutorial', 'Python Software Foundation',
@@ -75,11 +83,11 @@ export const resources: readonly Resource[] = [
     'https://portswigger.net/web-security/sql-injection', 3, 'Web Security'),
   doc('xss-academy', 'XSS', 'Cross-site scripting (XSS)', 'PortSwigger Web Security Academy',
     'https://portswigger.net/web-security/cross-site-scripting', 3, 'Web Security'),
-  doc('network-security-cisco', 'Network Security', 'Network Security', 'Cisco Networking Academy',
-    'https://skillsforall.com/course/networking-basics', 4, 'Cybersecurity'),
-  doc('linux-basics', 'Linux Basics', 'Learning the Shell', 'LinuxCommand.org',
+  externalDoc('network-security-cisco', 'Network Security', 'Network Defense', 'Cisco Networking Academy',
+    'https://www.netacad.com/courses/network-defense', 27, 'Cybersecurity'),
+  externalDoc('linux-basics', 'Linux Basics', 'Learning the Shell', 'LinuxCommand.org',
     'https://linuxcommand.org/lc3_learning_the_shell.php', 5, 'Cybersecurity'),
-  doc('cryptography-khan', 'Cryptography', 'Cryptography', 'Khan Academy',
+  externalDoc('cryptography-khan', 'Cryptography', 'Cryptography', 'Khan Academy',
     'https://www.khanacademy.org/computing/computer-science/cryptography', 4, 'Cybersecurity'),
   doc('html-mdn', 'HTML', 'Structuring content with HTML', 'MDN Web Docs',
     'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content', 4, 'Front-end'),
@@ -91,29 +99,29 @@ export const resources: readonly Resource[] = [
     'https://docs.github.com/en/get-started/using-git/about-git', 2, 'Front-end'),
   doc('accessibility-mdn', 'Web Accessibility', 'Accessibility', 'MDN Web Docs',
     'https://developer.mozilla.org/en-US/docs/Web/Accessibility', 3, 'Front-end'),
-  doc('sql-khan', 'SQL', 'Intro to SQL: Querying and managing data', 'Khan Academy',
+  externalDoc('sql-khan', 'SQL', 'Intro to SQL: Querying and managing data', 'Khan Academy',
     'https://www.khanacademy.org/computing/computer-programming/sql', 5, 'Data Analytics'),
   doc('excel-w3', 'Excel', 'Excel Tutorial', 'W3Schools',
     'https://www.w3schools.com/excel/', 4, 'Data Analytics'),
-  doc('statistics-khan', 'Statistics', 'Statistics and probability', 'Khan Academy',
+  externalDoc('statistics-khan', 'Statistics', 'Statistics and probability', 'Khan Academy',
     'https://www.khanacademy.org/math/statistics-probability', 8, 'Data Analytics'),
   doc('data-analysis-python', 'Data Analysis', 'Data Analysis with Python', 'freeCodeCamp',
     'https://www.freecodecamp.org/learn/data-analysis-with-python/', 10, 'Data Analytics'),
-  doc('nodejs', 'Node.js', 'Introduction to Node.js', 'Node.js',
+  externalDoc('nodejs', 'Node.js', 'Introduction to Node.js', 'Node.js',
     'https://nodejs.org/en/learn/getting-started/introduction-to-nodejs', 4, 'Back-end'),
   doc('rest-api', 'REST APIs', 'What is a REST API?', 'MDN Web Docs',
     'https://developer.mozilla.org/en-US/docs/Glossary/REST', 2, 'Back-end'),
   doc('postgresql', 'Databases', 'PostgreSQL Tutorial', 'PostgreSQL',
     'https://www.postgresql.org/docs/current/tutorial.html', 5, 'Back-end'),
-  doc('expressjs', 'Express.js', 'Express.js Guide', 'Express',
+  externalDoc('expressjs', 'Express.js', 'Express.js Guide', 'Express',
     'https://expressjs.com/en/guide/routing.html', 4, 'Back-end'),
   doc('ux-design-figma', 'UX Design', 'What is UX design?', 'Figma',
     'https://www.figma.com/resource-library/what-is-ux-design/', 2, 'UI/UX'),
   doc('wireframing', 'Wireframing', 'Wireframing and Prototyping', 'Figma Resource Library',
-    'https://www.figma.com/resource-library/', 2, 'UI/UX'),
+    'https://www.figma.com/resource-library/prototype-and-wireframe/', 2, 'UI/UX'),
   doc('usability', 'Usability', '10 Usability Heuristics for User Interface Design', 'Nielsen Norman Group',
     'https://www.nngroup.com/articles/ten-usability-heuristics/', 2, 'UI/UX'),
-  doc('design-accessibility', 'Accessibility', 'Accessibility Fundamentals Overview', 'W3C WAI',
+  externalDoc('design-accessibility', 'Accessibility', 'Accessibility Fundamentals Overview', 'W3C WAI',
     'https://www.w3.org/WAI/fundamentals/accessibility-intro/', 2, 'UI/UX'),
 ];
 
@@ -121,12 +129,7 @@ export interface CareerProfile {
   id: string;
   targetRole: string;
   skillGaps: string[];
+  skills: { skill: string; courses: Resource[] }[];
 }
 
-export const careerProfiles: readonly CareerProfile[] = [
-  { id: 'cybersecurity', targetRole: 'Cybersecurity', skillGaps: ['Network Security', 'Linux Basics', 'Cryptography', 'Web Security', 'Python'] },
-  { id: 'frontend', targetRole: 'Front-end Developer', skillGaps: ['HTML', 'CSS', 'JavaScript', 'Git', 'Web Accessibility'] },
-  { id: 'data-analyst', targetRole: 'Data Analyst', skillGaps: ['SQL', 'Excel', 'Statistics', 'Data Analysis', 'Python'] },
-  { id: 'backend', targetRole: 'Back-end Developer', skillGaps: ['Node.js', 'REST APIs', 'Databases', 'Express.js', 'Git'] },
-  { id: 'ui-ux', targetRole: 'UI/UX Designer', skillGaps: ['UX Design', 'Wireframing', 'Usability', 'Accessibility', 'Web Accessibility'] },
-];
+export const { resources, careerProfiles } = generateCatalog(baseResources);

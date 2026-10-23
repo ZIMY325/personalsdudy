@@ -21,7 +21,8 @@ test('commas, Chinese commas and newlines parse into skills', () => {
 
 test('case-insensitive aliases deduplicate while preserving useful canonical skills', () => {
   const nodes = generatePath({ targetRole: 'Engineer', skillGaps: ['pYtHoN', 'py', 'TCP/IP', 'gcp', 'sqli', '跨站脚本'] });
-  assert.deepEqual(nodes.map(n => n.skill), ['Python', 'Networking', 'Google Cloud', 'SQL Injection', 'XSS']);
+  assert.deepEqual([...new Set(nodes.map(n => n.skill))], ['Python', 'Networking', 'Google Cloud', 'SQL Injection', 'XSS']);
+  assert.equal(nodes.filter(node => node.skill === 'Python').length, 2);
   assert.equal(nodes.some(n => n.isGuidance), false);
 });
 
@@ -39,10 +40,10 @@ test('sample hours and completion percentage, including toggling back', () => {
     targetRole: 'Cloud Security Engineer',
     skillGaps: ['Python', 'Networking', 'Cloud', 'Web Security', 'Kubernetes'],
   });
-  assert.equal(nodes.length, 5);
-  assert.deepEqual(summarize(nodes, []), { totalHours: 22, completedHours: 0, completedCount: 0, percentage: 0 });
+  assert.equal(nodes.length, 10);
+  assert.deepEqual(summarize(nodes, []), { totalHours: 49, completedHours: 0, completedCount: 0, percentage: 0 });
   assert.deepEqual(summarize(nodes, ['python-video', 'networking-video', 'python-video', 'invalid']),
-    { totalHours: 22, completedHours: 16, completedCount: 2, percentage: 40 });
+    { totalHours: 49, completedHours: 16, completedCount: 2, percentage: 33 });
   assert.equal(summarize(nodes, nodes.map(n => n.id)).percentage, 100);
   assert.equal(summarize(nodes, ['networking-video']).completedHours, 10);
 });
@@ -69,15 +70,20 @@ test('catalog has at least 15 typed free resources and distinguishes blocked emb
 });
 
 test('each sample occupation has distinct, resource-backed detailed skill gaps', () => {
-  assert.ok(careerProfiles.length >= 5);
+  assert.ok(careerProfiles.length >= 80);
+  assert.equal(new Set(careerProfiles.map(profile => profile.targetRole)).size, careerProfiles.length);
   for (const profile of careerProfiles) {
-    assert.ok(profile.skillGaps.length >= 4);
-    for (const skill of profile.skillGaps) {
+    assert.ok(profile.skillGaps.length >= 10);
+    assert.equal(new Set(profile.skillGaps).size, profile.skillGaps.length);
+    for (const { skill, courses } of profile.skills) {
       assert.ok(resources.some(resource => resource.skill.toLowerCase() === skill.toLowerCase()), `${profile.targetRole}: ${skill}`);
+      assert.equal(courses.length, 2);
+      assert.equal(new Set(courses.map(course => course.url)).size, 2);
     }
+    assert.equal(generatePath({ targetRole: profile.targetRole, skillGaps: profile.skillGaps }).length, profile.skillGaps.length * 2);
   }
   assert.deepEqual(generatePath({ targetRole: 'Cybersecurity', skillGaps: ['NETWORK SECURITY', 'linux basics', 'CRYPTOGRAPHY'] }).map(node => node.skill),
-    ['Network Security', 'Linux Basics', 'Cryptography']);
+    ['Network Security', 'Network Security', 'Linux Basics', 'Linux Basics', 'Cryptography', 'Cryptography']);
 });
 
 test('refresh restores matching completion and schedule, and input signatures clear both', () => {
@@ -92,17 +98,22 @@ test('refresh restores matching completion and schedule, and input signatures cl
     signature: signature(input), completedIds: ['python-video', 'invalid', 'python-video'],
     schedule: [{ nodeId: 'python-video', day: 0, hour: 14 }, { nodeId: 'invalid', day: 7, hour: 30 }],
   };
-  assert.equal(writePersistedState(saved, storage as unknown as Storage), true);
+  storage.setItem(STORAGE_KEY, JSON.stringify(saved)); // Legacy one-hour reminders migrate.
   const validIds = new Set(generatePath(input).map(node => node.id));
   const restored = readPersistedState(signature(input), storage as unknown as Storage, validIds);
   assert.equal(restored.available, true);
   assert.deepEqual(restored.state.completedIds, ['python-video']);
-  assert.deepEqual(restored.state.schedule, [{ nodeId: 'python-video', day: 0, hour: 14 }]);
+  assert.deepEqual(restored.state.schedule, [{
+    id: 'python-video:w0:d0:m840', nodeId: 'python-video', day: 0, week: 0,
+    startMinutes: 840, durationMinutes: 60, completed: true,
+  }]);
+  assert.equal(writePersistedState(restored.state, storage as unknown as Storage), true);
+  assert.deepEqual(readPersistedState(signature(input), storage as unknown as Storage).state, restored.state);
   assert.equal(summarize(generatePath(input), restored.state.completedIds).completedHours, 6);
   assert.deepEqual(readPersistedState(signature({ ...input, targetRole: 'Security Engineer' }), storage as unknown as Storage, validIds).state.completedIds, []);
   assert.deepEqual(readPersistedState(signature({ ...input, skillGaps: ['Python'] }), storage as unknown as Storage, validIds).state.schedule, []);
   storage.setItem(STORAGE_KEY, '{bad json');
   assert.deepEqual(readPersistedState(signature(input), storage as unknown as Storage).state.completedIds, []);
   assert.equal(readPersistedState(signature(input), null).available, false);
-  assert.equal(writePersistedState(saved, null), false);
+  assert.equal(writePersistedState(restored.state, null), false);
 });

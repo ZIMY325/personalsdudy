@@ -1,67 +1,100 @@
-# 学习路径引擎
+# Learning Path Engine
 
-Standalone, client-only app at `/`. No FuturePath imports, API calls, backend,
-authentication, or database dependency.
+Standalone, English-language, client-only learning plugin at `/`. No FuturePath,
+backend, API, authentication, or database dependency.
 
-## Input contract
+## Embed in a parent page
 
-`generatePath({ targetRole: string, skillGaps: string[] })` is exported from
-`src/lib/engine.ts`. The top-of-page form adapts comma/newline-separated text
-to that contract. Valid inputs rebuild automatically; Generate Path also
-validates. Invalid inputs return no nodes.
+```tsx
+import { LearningPathWidget } from './components/learning-path-widget';
 
-## Demo
+<LearningPathWidget
+  targetRole="Cybersecurity"
+  skillGaps={['Network Security', 'Linux Basics', 'Cryptography']}
+  onStateChange={(state) => {
+    // Optional: receive completedCourseIds, completedHours, totalHours,
+    // and scheduledSessions with actual start/duration/finished fields.
+  }}
+/>
+```
 
-The default sample is **Cloud Security Engineer** with Python, Networking,
-Cloud, Web Security and Kubernetes.
+The widget obtains inputs exclusively from props. Import the app's `index.css`
+when using it in another frontend. Local component imports use the existing `@/`
+alias. Home owns the Dev Test inputs and passes their UI through an optional
+`devPanel` ReactNode; embedded widgets need not provide it. There is no API call.
+The legacy `completedSkillGaps` and `scheduledLessons` callback fields remain
+available; use `scheduledSessions` for week and duration information.
 
-- Clear either field: inline validation appears and the path disappears.
-- Load the sample: 5 nodes, **22 estimated hours**, including unknown-skill
-  Kubernetes search guidance.
-- Complete Python and Networking: **40%**, **16 / 22 hours**. Toggle either off
-  to reverse its contribution. Refresh restores current inputs and progress.
-- Change the role or skill set: progress resets. Changing back does not
-  revive old completion. Casing, whitespace, aliases and skill ordering are
-  normalized; equivalent input is not a new path.
-- Open Python: sandboxed YouTube iframe in an accessible dialog.
-- Open Cloud or Web Security: explicit non-embeddable fallback.
-- Open Kubernetes: guidance with a Google search link; search results are
-  not curated and must be checked for free access.
-- Open 资源库: all 17 resources and embedding labels. The official Python
-  tutorial offers an iframe document example.
-- Every viewer has **Open in new window** with `noopener noreferrer`.
-- If browser storage is blocked, the app remains usable and warns that
-  progress will not persist.
+## Demo and behavior
 
-## Link verification
+- **Overview** is the initial view: role overview and course cards only.
+- **Learning Path** provides course completion controls and partial hour progress.
+- **Schedule my path** opens **Calendar**, where the user selects a course.
+  A card's **Schedule** button preselects that course and opens the scheduling
+  dialog. Calendar's **Schedule a course** opens the same single dialog.
+- **Dev Test** contains manual role and comma/newline skill inputs, a searchable
+  career list, Apply example, and Match role to example.
+- Eight career-family seeds generate 80 distinct career titles. Every career
+  has at least 10 detailed skills, each mapped to two public learning resources.
+- Skill matching is case-insensitive (`toLowerCase`) and supports aliases.
+- Missing inputs produce no path. Unknown skills produce clearly labeled
+  search guidance, never fabricated courses.
+- Click a course title to preview it. In Learning Path, the separate circle
+  marks the whole course complete/incomplete and synchronizes its sessions.
+- Scheduling accepts a start weekday, 15-minute start time, and 0.25–8 hours per
+  session in quarter-hour steps. A 4-hour course at 1 hour/session becomes four
+  18:00–19:00 sessions on successive days. A non-divisible remainder becomes a
+  shorter final block. The sum always equals the remaining course time.
+- The planner preserves completed sessions, replaces that course's unfinished
+  sessions, and skips days whose proposed time overlaps other sessions.
+  Plans ending after 22:00 fail with an explanation; failures are atomic.
+- Calendar uses real-duration blocks, Monday–Sunday, 08:00–22:00, with week
+  navigation for long courses (up to 52 weeks). Weeks are relative planning
+  weeks, not dated events or timezone-aware calendar invitations.
+- Marking a session finished immediately updates its course's partial progress
+  and the overall completed hours. Overall percentage is hour-weighted.
+- **Reset progress** clears completion flags but retains scheduled sessions.
+  Removing a finished session removes its contributed hours unless the course
+  was explicitly marked fully complete.
 
-Public resources were requested with redirects followed on **2026-10-23**.
-All 17 catalog URLs returned HTTP 200. Both YouTube videos also returned
-public oEmbed metadata identifying freeCodeCamp and HTTP 200 from their
-actual `/embed/` URLs.
+## Persistence
 
-Frame policy observations:
+Completion and schedule share the `learning-path-engine:v1` localStorage key
+and a normalized role/skill signature. Equivalent casing, spacing, aliases,
+duplicate skills and skill order preserve progress. A different role or skill
+set clears prior progress and appointments; changing back does not revive them.
+Stale node IDs and invalid calendar entries are filtered.
+Legacy `{nodeId, day, hour}` reminders migrate to one-hour sessions in week 1,
+capped at the course's actual hours and synchronized with saved completion.
+New sessions persist IDs, week, day, startMinutes, durationMinutes and completed.
 
-| Provider | Observed embedding policy |
-| --- | --- |
-| YouTube embed endpoints | Public embed pages, no prohibiting frame header |
-| Python documentation | No prohibiting frame response header observed |
-| MDN, Docker, OWASP | `X-Frame-Options: DENY` |
-| W3Schools | CSP `frame-ancestors` restricts to its own properties |
-| Microsoft Learn, AWS, PortSwigger | `X-Frame-Options: SAMEORIGIN` |
-| Google Cloud documentation | CSP `frame-ancestors` restricts permitted origins |
+Standalone debug inputs use a separate localStorage key so choosing a non-default
+career also survives refresh. Embedded usage never overrides upstream props
+with locally stored inputs. Unavailable storage does not prevent in-memory use.
 
-Remote policies can change. HTTP/oEmbed checks do not guarantee successful
-video playback in every browser, country or network. Cross-origin iframe
-`load` does not prove that content rendered; the viewer states this and
-always provides the external option, plus loading/error/timeout handling.
-Estimated hours include recommended practice; they are not credentials.
+## Resource catalog
+
+The compact career/skill seeds and reusable course supplements cover frontend,
+backend, analytics, AI, operations, design, security and mobile development.
+They generate career-to-skill-to-course associations without hundreds of
+handwritten course objects. Sources are reused across related careers; 1,600+
+associations do not mean 1,600 unique courses. Generated entries are demo study
+modules backed by public documentation/tutorials, not invented credentials.
+Some providers require a free account. Hours are suggested study/practice
+estimates, not verified video runtimes or promises of professional competence.
+
+Known frame-blocking providers are labeled **Embedding blocked**. Providers
+whose embedding is not enabled in this demo are separately labeled **Open
+externally**. Videos use real YouTube embed URLs. Viewers retain sandbox,
+referrer-policy, loading/error/timeout handling, and safe external links.
+Cross-origin `load` cannot prove successful rendering.
 
 ## Checks
 
-- Project: `pnpm run typecheck`
-- Project build: `PORT=18619 BASE_PATH=/ pnpm run build`
-- Engine checks:
-  `pnpm --filter @workspace/scripts exec tsx --tsconfig ../artifacts/learning-path-engine/tsconfig.json --test ../artifacts/learning-path-engine/src/lib/engine.test.ts`
+- `pnpm --filter @workspace/learning-path-engine run typecheck`
+- `PORT=18619 BASE_PATH=/ pnpm --filter @workspace/learning-path-engine run build`
+- `pnpm --filter @workspace/scripts exec tsx --tsconfig ../artifacts/learning-path-engine/tsconfig.json --test ../artifacts/learning-path-engine/src/lib/engine.test.ts ../artifacts/learning-path-engine/src/lib/time-blocking.test.ts`
 
-Use the app's existing managed workflow for interactive preview.
+The focused checks cover validation, aliases, guidance, totals, profiles,
+signature changes, legacy migration, exact splitting, partial progress,
+overlaps, overnight rejection, multi-week allocation and persistence.
